@@ -1,3 +1,3 @@
 #!/bin/bash
 
-swipl -f anagram.pl
+swipl -f pascals_triangle.pl
