@@ -1,43 +1,74 @@
 % Written for SWIPL 8.0.3
 
-% take a string, and a list of string options, return the matching
-% words that are anagrams
+:- use_module(library(yall)).
+
+:- dynamic anagram_match/2.
+
+%
+% anagram/3
+%
+
 anagram(Word, Options, Matching) :-
-  string_lower_sort(Word, SortedWord),
-  check(Word, SortedWord, Options, [], ReversedMatching),
-  reverse(ReversedMatching, Matching).
+  string_lower_sort(Word, Lowered, Sorted),
 
-% check - recursive base case, cut all options after matching to this.
-check(_Word, _SortedWord, [], Matching, Matching) :-
-  !.
+  findall(
+    anagram_match(Option, LoweredOption),
+    (
+      member(Option, Options),
+      string_lower_sort(Option, LoweredOption, SortedOption),
+      \+ Lowered = LoweredOption,
+      Sorted = SortedOption
+    ),
+    AllMatchingTuples
+  ),
 
-% check - check option to word, if matches, cut, accumulate results
-check(Word, SortedWord, [Option | RemOptions], Acc, Matching) :-
-  string_lower_sort(Option, SortedOption),
-  SortedWord = SortedOption,
-  distinct_from_word(Word, Option),
-  unique_from_list(Option, Acc),
+  remove_subsequent_duplicates(AllMatchingTuples, UniqMatchingTuple),
+  maplist([T, W]>>(anagram_match(W, _) = T), UniqMatchingTuple, Matching).
+
+
+
+%
+% string_lower_sort/3
+%
+
+string_lower_sort(Word, Lowered, Sorted) :-
+  string_lower(Word, Lowered),
+  string_to_list(Lowered, List),
+  msort(List, SortedList),
+  string_to_list(Sorted, SortedList).
+
+%
+% remove_subsequent_duplicates/2 remove_subsequent_duplicates/3
+%
+
+% Expand to remove_subsequent_duplicates/3 with default option
+remove_subsequent_duplicates(PossibleDuplicates, UniqueList) :-
+  remove_subsequent_duplicates(PossibleDuplicates, [], UniqueList).
+
+% Basecase, reverse the accumulator
+remove_subsequent_duplicates([], RevUniqueList, UniqueList) :-
+  reverse(RevUniqueList, UniqueList).
+
+% If the possibility is unique, then keep in accumulator, recurse
+remove_subsequent_duplicates([Possibility | RemPossibilities], Acc, UniqueList) :-
+  check_if_unique(Possibility, Acc),
   !,
-  check(Word, SortedWord, RemOptions, [Option | Acc], Matching).
+  remove_subsequent_duplicates(RemPossibilities, [Possibility | Acc], UniqueList).
 
-% check - if matches, option was not an anagram, recurse on remaining
-check(Word, SortedWord, [_Option | RemOptions], Acc, Matching) :-
-  check(Word, SortedWord, RemOptions, Acc, Matching).
+% If not unique, move to next possibility
+remove_subsequent_duplicates([_ | RemPossibilities], Acc, UniqueList) :-
+  remove_subsequent_duplicates(RemPossibilities, Acc, UniqueList).
 
-% take a string, lower case it, make it to a list, sort the list
-string_lower_sort(Word, SortedLoweredLetters) :-
-  string_lower(Word, LoweredWord),
-  string_to_list(LoweredWord, LoweredLetters),
-  msort(LoweredLetters, SortedLoweredLetters).
 
-% make sure that an option isnt the same as the word
-distinct_from_word(Word, Option) :-
-  string_lower(Word, LowerWord),
-  string_lower(Option, LowerOption),
-  \+ (LowerWord = LowerOption).
+%
+% check_if_unique/2
+%
 
-% check if a string is unique in a list, check case insensitively
-unique_from_list(Word, ListOfWords) :-
-  string_lower(Word, LowerWord),
-  maplist(string_lower, ListOfWords, LowerListOfWords),
-  \+ member(LowerWord, LowerListOfWords).
+check_if_unique(anagram_match(_, LoweredWord), UniqueTuples) :-
+  findall(
+    UniqueLowered,
+    member(anagram_match(_, UniqueLowered), UniqueTuples),
+    UniqueLowereds
+  ),
+
+  \+ member(LoweredWord, UniqueLowereds).
