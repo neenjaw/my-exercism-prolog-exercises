@@ -1,5 +1,7 @@
+:- use_module(library(lists)).
+
 pascal(N, Rows) :-
-  pascal(N, 0, [], Rows).
+  pascal(N, 0, [], Rows), !.
 
 pascal(NGoal, NCurr, Acc, Rows) :-
   NCurr > NGoal,
@@ -15,7 +17,14 @@ pascal(NGoal, NCurr, Acc, Rows) :-
   NextNCurr is NCurr + 1,
   pascal(NGoal, NextNCurr, [Row | Acc], Rows).
 
-get_row(1, Acc, [1]).
-get_row(2, Acc, [1,1]).
+get_row(1, _Acc, [1]).
 
-get_row(N, )
+get_row(_N, [PrevRow | _], Row) :-
+  BuildFrom = [0 | PrevRow],
+  build_row(BuildFrom, [], Row).
+  
+build_row([Last], Acc, [Last | Acc]).
+  
+build_row([L1, L2 | Rest], Acc, Row) :-
+  Value is L1+L2,
+  build_row([L2 | Rest], [Value | Acc], Row).
