@@ -24,7 +24,7 @@ get_row(_N, [PrevRow | _], Row) :-
   build_row(BuildFrom, [], Row).
   
 build_row([Last], Acc, [Last | Acc]).
-  
+
 build_row([L1, L2 | Rest], Acc, Row) :-
   Value is L1+L2,
   build_row([L2 | Rest], [Value | Acc], Row).
